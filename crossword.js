@@ -29,6 +29,8 @@
 
 		var db = firebase.firestore();
 
+		var colors = ['red', 'blue', 'green', 'orange', 'purple'];
+
 		function getLetters() {
 			return $('svg>g>g').map((i, item) => {
 			    return $($(item).find('text:last-child text')[0]).text();
@@ -45,12 +47,11 @@
 			$('.colab_mod').remove();
 		}
 
-		function appendLetter(index, letter) {
+		function appendLetter(index, letter, color) {
 			if (letter.length == 0) {
 				return;
 			}
 			var last = $('svg>g>g:nth-child(' + (index+1) + ')>text:last-child');
-			console.log(last);
 			$('svg').append(
 				$(document.createElementNS('http://www.w3.org/2000/svg', 'text'))
 				.text(letter)
@@ -59,8 +60,9 @@
 				.attr('y', last.attr('y'))
 				.attr('font-size', last.attr('font-size') / letter.length)
 				.attr('text-anchor', last.attr('text-anchor'))
-				.css('opacity', 0.3)
-				.css('pointer-events', 'none'));
+				.css('opacity', 0.4)
+				.css('pointer-events', 'none')
+				.css('fill', color));
 		}
 
 		function syncWithFirebase(doc) {
@@ -71,12 +73,14 @@
 	        console.log('Current data: ', other_participants);
 	        var my_letters = getLetters();
 	        clearAuxillaryLetters();
+	        var index = 0;
 	        for (key in other_participants) {
 	        	var their_letters = other_participants[key];
+	        	var color = colors[index % colors.length];
+	        	index++;
 	        	for (var i = 0; i < my_letters.length; i++) {
-	        		console.log(i, my_letters[i], their_letters[i]);
 	        		if (my_letters[i] != their_letters[i]) {
-	        			appendLetter(i, their_letters[i]);
+	        			appendLetter(i, their_letters[i], color);
 	        		}
 	        	}
 	        }
@@ -98,5 +102,5 @@
 		db.collection('crosswords').doc(docId).onSnapshot(function(doc) {
 	        syncWithFirebase(doc);
 	    });
-	}, 100);
+	}, 1000);
 })();
