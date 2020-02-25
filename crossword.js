@@ -102,5 +102,5 @@
 		db.collection('crosswords').doc(docId).onSnapshot(function(doc) {
 	        syncWithFirebase(doc);
 	    });
-	}, 1000);
+	}, 300);
 })();
