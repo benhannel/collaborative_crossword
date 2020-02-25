@@ -65,25 +65,52 @@
 				.css('fill', color));
 		}
 
+		function appendHighlight(cell) {
+			$('svg').append(
+				$(document.createElementNS('http://www.w3.org/2000/svg', 'rect'))
+				.addClass('colab_mod')
+				.attr('x', cell.attr('x'))
+				.attr('y', cell.attr('y'))
+				.attr('width', cell.attr('width'))
+				.attr('height', cell.attr('height'))
+				.attr('fill', '#f0f')
+				.css('opacity', 0.3)
+				.css('pointer-events', 'none'));
+		}
+
+		function getPresence() {
+			var highlighted_cell = $('.Cell-selected--2PAbF');
+			return highlighted_cell.attr('id');
+		}
+
 		function syncWithFirebase(doc) {
 			var other_participants = doc.data();
 			if (other_participants[myId]) {
 		        delete other_participants[myId];
-		    }
+			}
 	        console.log('Current data: ', other_participants);
 	        var my_letters = getLetters();
 	        clearAuxillaryLetters();
 	        var index = 0;
 	        for (key in other_participants) {
-	        	var their_letters = other_participants[key];
+	        	var their_letters = other_participants[key].letters;
 	        	var color = colors[index % colors.length];
 	        	index++;
 	        	for (var i = 0; i < my_letters.length; i++) {
 	        		if (my_letters[i] != their_letters[i]) {
 	        			appendLetter(i, their_letters[i], color);
 	        		}
-	        	}
+				}
+				
+				var their_presence = other_participants[key].presence;
+				var their_location = their_presence.selected_cell;
+				var selected_cell = $(`#${their_location}`);
+				appendHighlight(selected_cell);
 	        }
+		}
+
+		function subscribeToEvents(eventNames, callback) {
+			eventNames.forEach(eventName => document.addEventListener(eventName, callback));
 		}
 
 		var myId = getCookie('nyt-a');
@@ -92,11 +119,30 @@
 		document.addEventListener('keyup', () => {
 			var letters = getLetters();
 			console.log('Sending board to Firebase.', letters);
-			var doc = {};
-			doc[myId] = letters;
+			var doc = {
+				[myId]: {
+					letters: letters
+				}
+			};
 			db.collection('crosswords')
 				.doc(docId)
 				.set(doc, {merge: true});
+		});
+
+		subscribeToEvents(['keydown', 'mouseup'], () => {
+			var presence_cell_id = getPresence();
+			console.log('Setting presence: ', presence_cell_id);
+
+			var docData = {
+				[myId]: {
+					presence: {
+						selected_cell: presence_cell_id
+					}
+				}
+			};
+			db.collection('crosswords')
+				.doc(docId)
+				.set(docData, {merge: true});
 		});
 
 		db.collection('crosswords').doc(docId).onSnapshot(function(doc) {
