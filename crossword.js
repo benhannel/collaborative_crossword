@@ -59,7 +59,7 @@
 				.attr('y', last.attr('y'))
 				.attr('font-size', last.attr('font-size') / letter.length)
 				.attr('text-anchor', last.attr('text-anchor'))
-				.css('opacity', 0.5)
+				.css('opacity', 0.3)
 				.css('pointer-events', 'none'));
 		}
 
