@@ -93,19 +93,24 @@
 	        clearAuxillaryLetters();
 	        var index = 0;
 	        for (key in other_participants) {
-	        	var their_letters = other_participants[key].letters;
 	        	var color = colors[index % colors.length];
 	        	index++;
-	        	for (var i = 0; i < my_letters.length; i++) {
-	        		if (my_letters[i] != their_letters[i]) {
-	        			appendLetter(i, their_letters[i], color);
-	        		}
+
+				var their_letters = other_participants[key].letters;
+				if (their_letters) {
+					for (var i = 0; i < my_letters.length; i++) {
+						if (my_letters[i] != their_letters[i]) {
+							appendLetter(i, their_letters[i], color);
+						}
+					}
 				}
 				
 				var their_presence = other_participants[key].presence;
-				var their_location = their_presence.selected_cell;
-				var selected_cell = $(`#${their_location}`);
-				appendHighlight(selected_cell, color);
+				if (their_presence) {
+					var their_location = their_presence.selected_cell;
+					var selected_cell = $(`#${their_location}`);
+					appendHighlight(selected_cell, color);
+				}
 	        }
 		}
 
