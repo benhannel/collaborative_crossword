@@ -65,7 +65,7 @@
 				.css('fill', color));
 		}
 
-		function appendHighlight(cell, color) {
+		function appendHighlight(cell, color, opacity = 0.3) {
 			$('svg').append(
 				$(document.createElementNS('http://www.w3.org/2000/svg', 'rect'))
 				.addClass('colab_mod')
@@ -74,13 +74,21 @@
 				.attr('width', cell.attr('width'))
 				.attr('height', cell.attr('height'))
 				.attr('fill', color)
-				.css('opacity', 0.3)
+				.css('opacity', opacity)
 				.css('pointer-events', 'none'));
 		}
 
-		function getPresence() {
+		function getPresenceSelected() {
 			var highlighted_cell = $('.Cell-selected--2PAbF');
 			return highlighted_cell.attr('id');
+		}
+
+		function getPresenceHighlighted() {
+			var highlighted_cells = $('.Cell-highlighted--2YbzJ');
+			var cell_ids = highlighted_cells.map((i, item) => {
+				return $(item).attr('id');
+			});
+			return cell_ids.toArray();
 		}
 
 		function syncWithFirebase(doc) {
@@ -110,6 +118,12 @@
 					var their_location = their_presence.selected_cell;
 					var selected_cell = $(`#${their_location}`);
 					appendHighlight(selected_cell, color);
+
+					var highlighted_cells = their_presence.highlighted_cells;
+					highlighted_cells.forEach((cell) => {
+						var highlighted_cell = $(`#${cell}`);
+						appendHighlight(highlighted_cell, color, 0.1);
+					});
 				}
 	        }
 		}
@@ -135,16 +149,18 @@
 		});
 
 		subscribeToEvents(['keydown', 'click'], () => {
-			var presence_cell_id = getPresence();
-			console.log('Setting presence: ', presence_cell_id);
+			var presence_cell_id = getPresenceSelected();
+			var highlighted_cells = getPresenceHighlighted();
 
 			var docData = {
 				[myId]: {
 					presence: {
-						selected_cell: presence_cell_id
+						selected_cell: presence_cell_id,
+						highlighted_cells: highlighted_cells
 					}
 				}
 			};
+			console.log('Setting presence: ', docData[myId].presence);
 			db.collection('crosswords')
 				.doc(docId)
 				.set(docData, {merge: true});
