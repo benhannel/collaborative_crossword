@@ -65,7 +65,7 @@
 				.css('fill', color));
 		}
 
-		function appendHighlight(cell) {
+		function appendHighlight(cell, color) {
 			$('svg').append(
 				$(document.createElementNS('http://www.w3.org/2000/svg', 'rect'))
 				.addClass('colab_mod')
@@ -73,7 +73,7 @@
 				.attr('y', cell.attr('y'))
 				.attr('width', cell.attr('width'))
 				.attr('height', cell.attr('height'))
-				.attr('fill', '#f0f')
+				.attr('fill', color)
 				.css('opacity', 0.3)
 				.css('pointer-events', 'none'));
 		}
@@ -105,7 +105,7 @@
 				var their_presence = other_participants[key].presence;
 				var their_location = their_presence.selected_cell;
 				var selected_cell = $(`#${their_location}`);
-				appendHighlight(selected_cell);
+				appendHighlight(selected_cell, color);
 	        }
 		}
 
@@ -129,7 +129,7 @@
 				.set(doc, {merge: true});
 		});
 
-		subscribeToEvents(['keydown', 'mouseup'], () => {
+		subscribeToEvents(['keydown', 'click'], () => {
 			var presence_cell_id = getPresence();
 			console.log('Setting presence: ', presence_cell_id);
 
