@@ -17,13 +17,13 @@
 	/* Add a delay so dependencies can load */
 	setTimeout(() => {
 		var firebaseConfig = {
-		apiKey: 'AIzaSyBVFhBn2-ssqHMGIgW8KRj3HbnrIMN6sYk',
-		authDomain: 'crosswords-44d95.firebaseapp.com',
-		databaseURL: 'https://crosswords-44d95.firebaseio.com',
-		projectId: 'crosswords-44d95',
-		storageBucket: 'crosswords-44d95.appspot.com',
-		messagingSenderId: '794243401614',
-		appId: '1:794243401614:web:dc2fc93575091367af46df'
+			apiKey: 'AIzaSyBVFhBn2-ssqHMGIgW8KRj3HbnrIMN6sYk',
+			authDomain: 'crosswords-44d95.firebaseapp.com',
+			databaseURL: 'https://crosswords-44d95.firebaseio.com',
+			projectId: 'crosswords-44d95',
+			storageBucket: 'crosswords-44d95.appspot.com',
+			messagingSenderId: '794243401614',
+			appId: '1:794243401614:web:dc2fc93575091367af46df'
 		};
 		firebase.initializeApp(firebaseConfig);
 
@@ -91,13 +91,20 @@
 			return cell_ids.toArray();
 		}
 
+		var last_state = null;
 		function syncWithFirebase(doc) {
 			var other_participants = doc.data();
 			if (other_participants[myId]) {
 		        delete other_participants[myId];
 			}
-	        console.log('Current data: ', other_participants);
-	        var my_letters = getLetters();
+			// If there was no change (ie it was just us typing), then don't
+			// update the overlay.
+			if (JSON.stringify(other_participants) == JSON.stringify(last_state)) {
+				return;
+			}
+			last_state = other_participants;
+	        
+	        // TODO use only the differential to make this more efficient
 	        clearAuxillaryLetters();
 	        var index = 0;
 	        for (key in other_participants) {
@@ -106,10 +113,8 @@
 
 				var their_letters = other_participants[key].letters;
 				if (their_letters) {
-					for (var i = 0; i < my_letters.length; i++) {
-						if (my_letters[i] != their_letters[i]) {
-							appendLetter(i, their_letters[i], color);
-						}
+					for (var i = 0; i < their_letters.length; i++) {
+						appendLetter(i, their_letters[i], color);
 					}
 				}
 				
@@ -128,30 +133,10 @@
 	        }
 		}
 
-		function subscribeToEvents(eventNames, callback) {
-			eventNames.forEach(eventName => document.addEventListener(eventName, callback));
-		}
-
-		var myId = getCookie('nyt-a');
-		var docId = window.location.pathname.replace(/\//g,'_');
-
-		document.addEventListener('keyup', () => {
-			var letters = getLetters();
-			console.log('Sending board to Firebase.', letters);
-			var doc = {
-				[myId]: {
-					letters: letters
-				}
-			};
-			db.collection('crosswords')
-				.doc(docId)
-				.set(doc, {merge: true});
-		});
-
-		subscribeToEvents(['keydown', 'click'], () => {
+		function updatePresence() {
 			var presence_cell_id = getPresenceSelected();
 			var highlighted_cells = getPresenceHighlighted();
-
+			
 			var docData = {
 				[myId]: {
 					presence: {
@@ -164,10 +149,26 @@
 			db.collection('crosswords')
 				.doc(docId)
 				.set(docData, {merge: true});
+		}
+
+		var myId = getCookie('nyt-a');
+		var docId = window.location.pathname.replace(/\//g,'_');
+
+		document.addEventListener('keyup', () => {
+			var doc = {
+				[myId]: {
+					letters: getLetters()
+				}
+			};
+			
+			db.collection('crosswords').doc(docId).set(doc, {merge: true});
 		});
+
+		document.addEventListener('keydown', updatePresence);
+		document.addEventListener('click', updatePresence);
 
 		db.collection('crosswords').doc(docId).onSnapshot(function(doc) {
 	        syncWithFirebase(doc);
 	    });
-	}, 300);
+	}, 500);
 })();
