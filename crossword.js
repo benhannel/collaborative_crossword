@@ -14,8 +14,7 @@
 	firest.src = 'https://www.gstatic.com/firebasejs/7.9.1/firebase-firestore.js';
 	document.getElementsByTagName('head')[0].appendChild(firest);
 
-	/* Add a delay so dependencies can load */
-	setTimeout(() => {
+	function onLoad() {
 		var firebaseConfig = {
 			apiKey: 'AIzaSyBVFhBn2-ssqHMGIgW8KRj3HbnrIMN6sYk',
 			authDomain: 'crosswords-44d95.firebaseapp.com',
@@ -29,7 +28,9 @@
 
 		var db = firebase.firestore();
 
-		var colors = ['red', 'blue', 'green', 'orange', 'purple'];
+		var colors = ['#61210F', '#086788', '#FF3C38', '#370031', 'green'];
+
+		var overlays = {};
 
 		function getLetters() {
 			return $('svg>g>g').map((i, item) => {
@@ -47,22 +48,50 @@
 			$('.colab_mod').remove();
 		}
 
-		function appendLetter(index, letter, color) {
-			if (letter.length == 0) {
-				return;
+		/**
+		 * Returns a hash code for a string.
+		 * (Compatible to Java's String.hashCode())
+		 *
+		 * The hash code for a string object is computed as
+		 *     s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]
+		 * using number arithmetic, where s[i] is the i th character
+		 * of the given string, n is the length of the string,
+		 * and ^ indicates exponentiation.
+		 * (The hash value of the empty string is zero.)
+		 *
+		 * @param {string} s a string
+		 * @return {number} a hash code value for the given string.
+		 */
+		function hashCode(s) {
+		  var h = 0, l = s.length, i = 0;
+		  if ( l > 0 )
+		    while (i < l)
+		      h = (h << 5) - h + s.charCodeAt(i++) | 0;
+		  return Math.abs(h);
+		};
+
+		function getOverlayForPlayer(player_id) {
+			if (!(player_id in overlays)) {
+				var color = colors[hashCode(player_id) % colors.length];
+				overlays[player_id] = [];
+				$('svg>g>g').each((i, element) => {
+					element = $(element);
+					var children = element.children();
+					var main_letter = $(children[children.length - 1]);
+					var overlay_letter =
+						$(document.createElementNS('http://www.w3.org/2000/svg', 'text'))
+							.attr('x', main_letter.attr('x'))
+							.attr('y', main_letter.attr('y'))
+							.attr('font-size', main_letter.attr('font-size'))
+							.attr('text-anchor', main_letter.attr('text-anchor'))
+							.css('opacity', 0.3)
+							.css('pointer-events', 'none')
+							.css('fill', color);
+					overlays[player_id].push(overlay_letter);
+					$('svg').append(overlay_letter);
+				});
 			}
-			var last = $('svg>g>g:nth-child(' + (index+1) + ')>text:last-child');
-			$('svg').append(
-				$(document.createElementNS('http://www.w3.org/2000/svg', 'text'))
-				.text(letter)
-				.addClass('colab_mod')
-				.attr('x', last.attr('x'))
-				.attr('y', last.attr('y'))
-				.attr('font-size', last.attr('font-size') / letter.length)
-				.attr('text-anchor', last.attr('text-anchor'))
-				.css('opacity', 0.4)
-				.css('pointer-events', 'none')
-				.css('fill', color));
+			return overlays[player_id];
 		}
 
 		function appendHighlight(cell, color, opacity = 0.3) {
@@ -104,17 +133,17 @@
 			}
 			last_state = other_participants;
 	        
-	        // TODO use only the differential to make this more efficient
-	        clearAuxillaryLetters();
 	        var index = 0;
 	        for (key in other_participants) {
 	        	var color = colors[index % colors.length];
 	        	index++;
 
+	        	var overlay = getOverlayForPlayer(key);
+
 				var their_letters = other_participants[key].letters;
 				if (their_letters) {
 					for (var i = 0; i < their_letters.length; i++) {
-						appendLetter(i, their_letters[i], color);
+						overlay[i].text(their_letters[i]);
 					}
 				}
 				
@@ -145,7 +174,6 @@
 					}
 				}
 			};
-			console.log('Setting presence: ', docData[myId].presence);
 			db.collection('crosswords')
 				.doc(docId)
 				.set(docData, {merge: true});
@@ -170,5 +198,15 @@
 		db.collection('crosswords').doc(docId).onSnapshot(function(doc) {
 	        syncWithFirebase(doc);
 	    });
-	}, 2000);
+	}
+
+	/* Add a delay so dependencies can load */
+	var interval = setInterval(() => {
+		console.log("Waiting for dependencies to load");
+		if (("$" in window) && ("firebase" in window) && firebase.firestore) {
+			console.log("Dependencies loaded");
+			clearInterval(interval);
+			onLoad();
+		}
+	}, 10);
 })();

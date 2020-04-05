@@ -1,15 +1,14 @@
 <a href="javascript:(function() {
-	/* Load the source of the bookmarklet, then execute it. Allows for updates. */
-	var jqry = document.createElement('script');
-	jqry.src = 'https://code.jquery.com/jquery-3.3.1.min.js';
-	document.getElementsByTagName('head')[0].appendChild(jqry);
-
-	setTimeout(() => {
-		$.get('https://raw.githubusercontent.com/benhannel/collaborative_crossword/master/crossword.js')
-			.then(result => {
-			eval(result);
-		});
-	}, 2000);
+	/* Load the bookmarklet source via pure AJAX, so we have no dependencies.
+	 * Dynamic loading allows for continuous updates. */
+	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function() {
+	    if (xhr.readyState === 4){
+	        eval(xhr.responseText);
+	    }
+	};
+	xhr.open('GET', 'https://raw.githubusercontent.com/benhannel/collaborative_crossword/master/crossword.js');
+	xhr.send();
 })();">Crossword</a>
 <br>
 Drag this link into your bookmarks bar, then go to a New York Times crossword, and click the bookmark. It will show what everyone else has on their crossword so far. The letters just act like ghosts- you can't overwrite other people's letters, and they can't overwrite yours. They also don't count towards solving the puzzle. You have to ink over them.
