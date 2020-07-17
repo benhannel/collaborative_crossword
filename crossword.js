@@ -44,7 +44,7 @@
 		  if (parts.length == 2) return parts.pop().split(';').shift();
 		}
 
-		function clearAuxillaryLetters() {
+		function clearHighlights() {
 			$('.colab_mod').remove();
 		}
 
@@ -131,7 +131,8 @@
 			if (JSON.stringify(other_participants) == JSON.stringify(last_state)) {
 				return;
 			}
-			last_state = other_participants;
+
+			clearHighlights();
 	        
 	        var index = 0;
 	        for (key in other_participants) {
@@ -159,7 +160,9 @@
 						appendHighlight(highlighted_cell, color, 0.1);
 					});
 				}
-	        }
+			}
+			
+			last_state = other_participants;
 		}
 
 		function updatePresence() {
